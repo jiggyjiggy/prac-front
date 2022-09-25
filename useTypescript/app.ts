@@ -27,15 +27,42 @@ interface NewsComment extends News {
     readonly level: number;
 }
 
-const ajax: XMLHttpRequest = new XMLHttpRequest();
 const container: HTMLElement | null = document.getElementById("root");
-const content = document.createElement("div");
 const NEWS_URL = "https://api.hnpwa.com/v0/news/1.json";
 const CONTENT_URL = "https://api.hnpwa.com/v0/item/@id.json";
 const store: Store = {
     currentPage: 1,
     feeds: [],
 };
+
+class Api {
+    ajax: XMLHttpRequest;
+    url: string;
+
+    constructor(url: string) {
+        this.ajax = new XMLHttpRequest();
+        this.url = url;
+    };
+
+    protected getRequest<AjaxResponse>(): AjaxResponse {
+        this.ajax.open("GET", this.url, false);
+        this.ajax.send();
+
+        return JSON.parse(this.ajax.response)
+    }
+}
+
+class NewsFeedApi extends Api {
+    getData(): NewsFeed[] {
+        return this.getRequest<NewsFeed[]>();
+    }
+}
+
+class NewsCommentApi extends Api {
+    getData(): NewsComment {
+        return this.getRequest<NewsComment>();
+    }
+}
 
 function getData<AjaxResponse>(url: string): AjaxResponse {
     ajax.open("GET", url, false);
@@ -61,6 +88,7 @@ function updateView(html: string): void {
 }
 
 function newsFeed(): void {
+    const api = new NewsFeedApi(NEWS_URL)
     let newsFeed: NewsFeed[] = store.feeds;
     const newsList = [];
     let template = `
@@ -89,7 +117,7 @@ function newsFeed(): void {
     `;
 
     if (newsFeed.length === 0) {
-        newsFeed = store.feeds = makeFeeds(getData<NewsFeed[]>(NEWS_URL));
+        newsFeed = store.feeds = makeFeeds(api.getData());
     }
 
     for (let i = (store.currentPage - 1) * 10; i < store.currentPage * 10; i++) {
@@ -146,7 +174,8 @@ function makeComment(comments: NewsComment[]): string {
 
 function newsDetail() {
     const id = location.hash.substring(7);
-    const newsContent = getData<NewsDetail>(CONTENT_URL.replace("@id", id));
+    const api = new NewsCommentApi(CONTENT_URL.replace("@id", id));
+    const newsContent = api.getData();
     let template = `
         <div class="bg-gray-600 min-h-screen pb-8">
             <div class="bg-white text-xl">
