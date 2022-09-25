@@ -28,19 +28,17 @@ window.addEventListener("hashchange", function() {
     `
 });
 
+const newList = [];
+newList.push(`<ul>`);
 for (let i = 0; i < 10; i++) {
-    const div = document.createElement("div");
-
-    div.innerHTML = `
+    newList.push(`
         <li>
             <a href="#${newsFeed[i].id}">
                 ${newsFeed[i].title} (${newsFeed[i].comments_count})
             </a>
         </li>
-    `;
-
-    ul.appendChild(div.firstElementChild);
+    `);
 };
+newList.push(`</ul>`);
 
-container.appendChild(ul);
-container.appendChild(content);
+container.innerHTML = newList.join("");
