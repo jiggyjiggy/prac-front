@@ -11,10 +11,26 @@ function getData(url) {
     return JSON.parse(ajax.response)
 }
 
-const newsFeed = getData(NEWS_URL);
-const ul = document.createElement("ul");
+function newsFeed() {
+    const newsFeed = getData(NEWS_URL);
+    const newList = [];
 
-window.addEventListener("hashchange", function() {
+    newList.push(`<ul>`);
+    for (let i = 0; i < 10; i++) {
+        newList.push(`
+            <li>
+                <a href="#${newsFeed[i].id}">
+                    ${newsFeed[i].title} (${newsFeed[i].comments_count})
+                </a>
+            </li>
+        `);
+    };
+    newList.push(`</ul>`);
+
+    container.innerHTML = newList.join("");
+};
+
+function newsDetail() {
     const id = location.hash.substring(1);
 
     const newsContent = getData(CONTENT_URL.replace("@id", id));
@@ -26,19 +42,7 @@ window.addEventListener("hashchange", function() {
             <a href=#>목록으로</a>
         </div>
     `
-});
-
-const newList = [];
-newList.push(`<ul>`);
-for (let i = 0; i < 10; i++) {
-    newList.push(`
-        <li>
-            <a href="#${newsFeed[i].id}">
-                ${newsFeed[i].title} (${newsFeed[i].comments_count})
-            </a>
-        </li>
-    `);
 };
-newList.push(`</ul>`);
 
-container.innerHTML = newList.join("");
+window.addEventListener("hashchange", newsDetail);
+newsFeed();
