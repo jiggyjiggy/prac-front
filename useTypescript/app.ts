@@ -35,41 +35,45 @@ const store: Store = {
     feeds: [],
 };
 
+function applyApiMixins(targetClass: any, baseClasses: any[]): void {
+    baseClasses.forEach(baseClass => {
+        Object.getOwnPropertyNames(baseClass.prototype).forEach(name => {
+            const descriptor = Object.getOwnPropertyDescriptor(baseClass.prototype, name);
+            
+            if (descriptor) {
+                Object.defineProperty(targetClass.prototype, name, descriptor);
+            }            
+        });
+    });
+}
+
 class Api {
-    ajax: XMLHttpRequest;
-    url: string;
+    getRequest<AjaxResponse>(url: string): AjaxResponse {
+        const ajax = new XMLHttpRequest()
+        ajax.open("GET", url, false);
+        ajax.send();
 
-    constructor(url: string) {
-        this.ajax = new XMLHttpRequest();
-        this.url = url;
-    };
-
-    protected getRequest<AjaxResponse>(): AjaxResponse {
-        this.ajax.open("GET", this.url, false);
-        this.ajax.send();
-
-        return JSON.parse(this.ajax.response)
+        return JSON.parse(ajax.response)
     }
 }
 
-class NewsFeedApi extends Api {
+class NewsFeedApi {
     getData(): NewsFeed[] {
-        return this.getRequest<NewsFeed[]>();
+        return this.getRequest<NewsFeed[]>(NEWS_URL);
     }
 }
 
-class NewsCommentApi extends Api {
-    getData(): NewsComment {
-        return this.getRequest<NewsComment>();
+class NewsDetailApi {
+    getData(id: string): NewsDetail {
+        return this.getRequest<NewsDetail>(CONTENT_URL.replace("@id", id));
     }
 }
 
-function getData<AjaxResponse>(url: string): AjaxResponse {
-    ajax.open("GET", url, false);
-    ajax.send();
+interface NewsFeedApi extends Api {};
+interface NewsDetailApi extends Api {};
 
-    return JSON.parse(ajax.response)
-}
+applyApiMixins(NewsFeedApi, [Api]);
+applyApiMixins(NewsDetailApi, [Api]);
 
 function makeFeeds(feeds: NewsFeed[]): NewsFeed[] {
     for (let i = 0; i < feeds.length; i++) {
@@ -88,7 +92,7 @@ function updateView(html: string): void {
 }
 
 function newsFeed(): void {
-    const api = new NewsFeedApi(NEWS_URL)
+    const api = new NewsFeedApi()
     let newsFeed: NewsFeed[] = store.feeds;
     const newsList = [];
     let template = `
@@ -174,8 +178,8 @@ function makeComment(comments: NewsComment[]): string {
 
 function newsDetail() {
     const id = location.hash.substring(7);
-    const api = new NewsCommentApi(CONTENT_URL.replace("@id", id));
-    const newsContent = api.getData();
+    const api = new NewsDetailApi();
+    const newsDetail: NewsDetail = api.getData(id);
     let template = `
         <div class="bg-gray-600 min-h-screen pb-8">
             <div class="bg-white text-xl">
@@ -194,9 +198,9 @@ function newsDetail() {
             </div>
 
             <div class="h-full border rounded-xl bg-white m-6 p-4 ">
-                <h2>${newsContent.title}</h2>
+                <h2>${newsDetail.title}</h2>
                 <div class="text-gray-400 h-20">
-                    ${newsContent.content}
+                    ${newsDetail.content}
                 </div>
 
                 {{__comments__}}
@@ -212,7 +216,7 @@ function newsDetail() {
         }
     }
 
-    updateView(template.replace("{{__comments__}}", makeComment(newsContent.comments)));
+    updateView(template.replace("{{__comments__}}", makeComment(newsDetail.comments)));
 };
 
 function router(): void {
