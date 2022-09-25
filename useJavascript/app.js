@@ -44,5 +44,16 @@ function newsDetail() {
     `
 };
 
-window.addEventListener("hashchange", newsDetail);
-newsFeed();
+function router() {
+    const routePath = location.hash;
+
+    if (routePath === "") {
+        newsFeed();
+    } else {
+        newsDetail();
+    }
+}
+
+window.addEventListener("hashchange", router);
+
+router();
